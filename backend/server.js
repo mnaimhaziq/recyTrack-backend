@@ -18,6 +18,7 @@ if (process.env.NODE_ENV === "development") {
   }
 
 app.get("/", (req, res) => {
+    res.setHeader("Access-control-allow-Credentials","true")
   res.send("API is running....");
 });
 
