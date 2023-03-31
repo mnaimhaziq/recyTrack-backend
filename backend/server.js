@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import cors from "cors"
 import dotenv from "dotenv";
 import morgan from "morgan";
 import colors from "colors";
@@ -11,6 +12,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.use(cors());
 
 app.use(express.json());
 if (process.env.NODE_ENV === "development") {
@@ -18,7 +20,6 @@ if (process.env.NODE_ENV === "development") {
   }
 
 app.get("/", (req, res) => {
-    res.setHeader("Access-control-allow-Credentials","true")
   res.send("API is running....");
 });
 
