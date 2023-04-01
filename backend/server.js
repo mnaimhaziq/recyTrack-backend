@@ -14,13 +14,6 @@ connectDB();
 const app = express();
 app.use(cors());
 
-// Serve the static files from the React app
-app.use(express.static(path.join(new URL('../build', import.meta.url).pathname)));
-
-// Catch all other routes and return the index file
-app.get('*', (req, res) => {
-  res.sendFile(path.join(new URL('../build/index.html', import.meta.url).pathname));
-});
 
 app.use(express.json());
 if (process.env.NODE_ENV === "development") {
