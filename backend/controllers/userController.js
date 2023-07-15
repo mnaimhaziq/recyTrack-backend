@@ -21,6 +21,7 @@ const authUser = asyncHandler(async (req, res) => {
       phoneNumber: user.phoneNumber,
       address: user.address,
       token: generateToken(user._id),
+      darkMode: user.darkMode
     });
   } else {
     res.status(401).json({ error: "Invalid email or password" });
@@ -48,7 +49,6 @@ const registerUser = asyncHandler(async (req, res) => {
       name,
       email,
       password,
-      phoneNumber,
       picture: uploadedResponse,
       address,
     });
@@ -62,6 +62,7 @@ const registerUser = asyncHandler(async (req, res) => {
         picture: uploadedResponse,
         address: user.address,
         token: generateToken(user._id),
+        darkMode: user.darkMode
       });
     }
   } else {
@@ -73,22 +74,30 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route    PUT /api/users/updateProfile
 // @access   Private
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id); 
+  const { name, email, password, picture, address } = req.body;
+
+  if (picture) {
+    const uploadedResponse = await cloudinary.uploader.upload(picture, {
+      upload_preset: "recyTrack_users_picture",
+    });
 
   if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.picture = uploadedResponse;
     if (req.body.password) {
-      user.password = req.body.password;
+      user.password = password;
     }
     if (req.body.address) {
       user.address = {
-        street: req.body.address.street || user.address.street,
-        city: req.body.address.city || user.address.city,
-        postalCode: req.body.address.postalCode || user.address.postalCode,
-        country: req.body.address.country || user.address.country,
+        street: address.street || user.address.street,
+        city: address.city || user.address.city,
+        postalCode: address.postalCode || user.address.postalCode,
+        country: address.country || user.address.country,
       };
     }
+    
 
     const updatedUser = await user.save();
 
@@ -96,21 +105,22 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      picture: updatedUser.picture,
       isAdmin: updatedUser.isAdmin,
       address: updatedUser.address,
       token: generateToken(updatedUser._id),
     });
-  } else {
+  }} else {
     res.status(404).json({ error: "User not found" });
   }
 });
 
 
 
-// @desc     Get all users
+// @desc     Get all users By Page
 // @route    GET /api/users
 // @access   Private
-const getUsers = asyncHandler(async (req, res, next) => {
+const getUsersByPage = asyncHandler(async (req, res, next) => {
   const pageSize = 8;
   let page = Number(req.query.page) || 1;
   const searchKeyword = req.query.search || "";
@@ -152,4 +162,40 @@ const getUsers = asyncHandler(async (req, res, next) => {
   }
 });
 
-export { authUser, registerUser, updateUserProfile, getUsers };
+// @desc     Get all users
+// @route    GET /api/allUsers
+// @access   Private
+const getAllUsers = asyncHandler(async (req, res, next) => {
+  try {
+    const users = await User.find().sort({ _id: -1 });
+
+    res.json({
+      data: users,
+      count: users.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const updateDarkMode = async (req, res) => {
+  const { userId, darkMode } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.darkMode = darkMode;
+    await user.save();
+
+    
+  } catch (error) {
+    console.error('Error updating dark mode:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export { authUser, registerUser, updateUserProfile, getUsersByPage, getAllUsers, updateDarkMode };
