@@ -16,11 +16,9 @@ const createRecyclingLocation = asyncHandler(async (req, res) => {
     address,
   });
   if (existingLocation) {
-    res.status(400).json({
-      error:
-        "A recycling location with the same name and address already exists",
-    });
-    return;
+    res.status(400);
+    throw new Error("A recycling location with the same name and address already exists");
+
   }
 
   const recyclingLocation = await RecyclingCollection.create({
@@ -152,16 +150,15 @@ const getRecyclingLocationById = asyncHandler(async (req, res) => {
 // @desc     Create New Recycling History
 // @route    POST /api/recycle/create
 // @access   Private
-const createRecycle = async (req, res) => {
+const createRecycle = asyncHandler(async (req, res) => {
   try {
-    const { recyclingLocationId, recyclingMethod, quantity, wasteType, user_id } =
-      req.body;
-      let userId = null;
-      if(req.user.isAdmin){
-          userId =  user_id; 
-      }else{ 
-          userId = req.user._id; 
-      }
+    const { recyclingLocationId, recyclingMethod, quantity, wasteType, user_id } = req.body;
+    let userId = null;
+    if (req.user.isAdmin) {
+      userId = user_id;
+    } else {
+      userId = req.user._id;
+    }
 
     // Create a new recycling history record
     const recyclingHistory = new RecyclingHistory({
@@ -175,16 +172,16 @@ const createRecycle = async (req, res) => {
     // Save the record to the database
     await recyclingHistory.save();
 
-    res
-      .status(201)
-      .json({ message: "Recycling history record created successfully." });
+    // Send the response after the record is saved
+    res.status(201).json({ message: "Recycling history record created successfully." });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       error: "An error occurred while creating the recycling history record.",
     });
   }
-};
+});
+
 
 
 // @desc     Delete a Recycling History
@@ -315,6 +312,63 @@ const getRecyclingHistoryByUserIdAndPage = async (req, res) => {
   }
 };
 
+const getRecyclingHistoryForAllUsersByPage = async (req, res) => {
+  const pageSize = 8;
+  let page = Number(req.query.page) || 1;
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = page * pageSize;
+
+  try {
+    const recyclingHistory = await RecyclingHistory.find()
+    .populate({
+      path: "user", 
+      select: "name", 
+    }).populate({
+        path: "recyclingLocation",
+        select: "locationName",
+      })
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(pageSize);
+
+    const totalCount = await RecyclingHistory.countDocuments();
+
+    recyclingHistory.forEach((record) => {
+      if (!record.recyclingLocation) {
+        record.recyclingLocation = null;
+      }
+    });
+
+    const pagination = {};
+
+    if (endIndex < totalCount) {
+      pagination.next = {
+        page: page + 1,
+        pageSize: pageSize,
+      };
+    }
+
+    if (startIndex > 0) {
+      pagination.prev = {
+        page: page - 1,
+        pageSize: pageSize,
+      };
+    }
+
+    res.status(200).json({
+      data: recyclingHistory,
+      page: page,
+      pages: Math.ceil(totalCount / pageSize),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error:
+        "An error occurred while retrieving the recycling history records.",
+    });
+  }
+};
+
 
 
 // @desc     GET Recycling History By its ID
@@ -332,97 +386,12 @@ const getRecyclingHistoryById = asyncHandler(async (req, res) => {
 });
 
 
-// @desc     GET Total Recycling History By User ID
-// @route    GET /api/recycle/getTotalRecyclingHistoryByUserId/:id
-// @access   Private
-const getTotalRecyclingHistoryByUserId = asyncHandler(async (req, res) => {
-  const userId = req.params.id;
-  const recyclingHistory = await RecyclingHistory.find({ user: userId });
-
-  const recyclingHistoryCount = recyclingHistory.length;
-
-  if (recyclingHistoryCount === 0) {
-    res.status(200).json("Recycling History not found");
-  }
-
-  res.status(200).json({
-    count: recyclingHistoryCount,
-  });
-});
 
 
-// @desc     GET Total Recycling History By User ID
-// @route    GET /api/recycle/getMostRecycledWasteType/:id
-// @access   Private
-const getMostRecycledWasteType = asyncHandler(async (req, res) => {
-  const userId = req.params.id;
-  const recyclingHistory = await RecyclingHistory.find({ user: userId });
 
-  if (!recyclingHistory || recyclingHistory.length === 0) {
-    // Return an empty response or an appropriate message
-    return res.status(200).json({ mostRecycledWasteType: "None" });
-  }
 
-  const wasteTypeMap = {};
-  recyclingHistory.forEach((record) => {
-    if (wasteTypeMap[record.wasteType]) {
-      wasteTypeMap[record.wasteType] += record.quantity;
-    } else {
-      wasteTypeMap[record.wasteType] = record.quantity;
-    }
-  });
 
-  const sortedWasteTypes = Object.entries(wasteTypeMap).sort(
-    (a, b) => b[1] - a[1]
-  );
 
-  const mostRecycledWasteType = sortedWasteTypes[0][0];
-
-  res.status(200).json({ mostRecycledWasteType });
-});
-
-const getRecyclingPercentagesByUser = asyncHandler(async (req, res, next) => {
-  const userId = req.params.id;
-
-  try {
-    // Get all recycling records for the user
-    const userRecycling = await RecyclingHistory.find({ user: userId });
-
-    // Calculate recycling quantities for each waste type
-    const wasteTypes = await RecyclingHistory.distinct("wasteType", { user: userId });
-    const totalRecyclingQuantities = {};
-    for (const wasteType of wasteTypes) {
-      const wasteTypeRecycling = userRecycling.filter(
-        (recycling) => recycling.wasteType === wasteType
-      );
-      const wasteTypeQuantity = wasteTypeRecycling.reduce((total, recycling) => {
-        return total + recycling.quantity;
-      }, 0);
-      totalRecyclingQuantities[wasteType] = wasteTypeQuantity;
-    }
-
-    // Calculate recycling percentages for each waste type
-    const recyclingPercentages = {};
-    const totalQuantity = Object.values(totalRecyclingQuantities).reduce((total, quantity) => {
-      return total + quantity;
-    }, 0);
-    for (const [wasteType, quantity] of Object.entries(totalRecyclingQuantities)) {
-      const percentage = ((quantity / totalQuantity) * 100).toFixed(2);
-      recyclingPercentages[wasteType] = percentage;
-    }
-
-    // Sort the result by percentage values in ascending order
-    const sortedResult = Object.entries(recyclingPercentages).sort((a, b) => b[1] - a[1]);
-    const sortedRecyclingPercentages = {};
-    for (const [wasteType, percentage] of sortedResult) {
-      sortedRecyclingPercentages[wasteType] = percentage;
-    }
-
-    res.json(sortedRecyclingPercentages);
-  } catch (error) {
-    next(error);
-  }
-});
 
 
 
@@ -437,10 +406,8 @@ export {
   getRecyclingLocationById,
   createRecycle,
   getRecyclingHistoryById,
-  getTotalRecyclingHistoryByUserId,
   deleteRecyclingHistory,
   updateRecyclingHistory,
   getRecyclingHistoryByUserIdAndPage,
-  getMostRecycledWasteType,
-  getRecyclingPercentagesByUser
+  getRecyclingHistoryForAllUsersByPage
 };

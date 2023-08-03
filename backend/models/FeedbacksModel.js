@@ -11,14 +11,14 @@ const feedbackSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  media: {
-    type: Object,
-    required: false
+  resolved: {
+    type: Boolean,
+    required: false,
+    default: false
   },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+} , {
+  // Automatically updates the creation and update timestamps
+  timestamps: true,
 });
 
 // Create the feedback model

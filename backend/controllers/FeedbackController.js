@@ -76,3 +76,45 @@ export const getAllFeedbacksByPages = async (req, res) => {
       res.status(500).json({ error: 'Error retrieving feedback' });
     }
   };
+
+
+// Toggle feedback resolved status
+export const toggleResolvedStatus = asyncHandler(async (req, res) => {
+  const { feedbackId } = req.params;
+
+  try {
+    // Find the feedback by ID
+    const feedback = await Feedback.findById(feedbackId);
+
+    if (!feedback) {
+      return res.status(404).json({ error: 'Feedback not found' });
+    }
+
+    // Toggle the resolved status
+    feedback.resolved = !feedback.resolved;
+
+    // Save the updated feedback
+    const updatedFeedback = await feedback.save();
+
+    res.status(200).json(updatedFeedback);
+  } catch (error) {
+    console.error('Error toggling feedback resolved status:', error);
+    res.status(500).json({ error: 'Error toggling feedback resolved status' });
+  }
+});
+
+// @desc     Delete a Feedback
+// @route    DELETE /api/feedback/delete/:id
+// @access   Private/Admin
+export const deleteFeedback = asyncHandler(async (req, res) => {
+  const deletedFeedback = await Feedback.findByIdAndDelete(
+    req.params.id
+  );
+
+  if (deletedFeedback) {
+    res.json({ message: "Feedback removed" });
+  } else {
+    res.status(404).json({ error: "Feedback not found" });
+  }
+});
+

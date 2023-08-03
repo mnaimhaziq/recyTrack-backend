@@ -8,6 +8,9 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import recycleRoutes from "./routes/recycleRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js"
+import educationRoutes from "./routes/educationRoutes.js"
+import dashboardRoutes from "./routes/DashboardRoutes.js"
+import leaderboardRoutes from "./routes/LeaderboardRoutes.js"
 import bodyParser from "body-parser";
 
 
@@ -31,6 +34,9 @@ app.get("/", (req, res) => {
 app.use("/api/recycle", recycleRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/education", educationRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 
 const PORT = process.env.PORT || 5001;
 

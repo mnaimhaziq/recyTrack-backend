@@ -55,7 +55,7 @@ const userSchema = mongoose.Schema(
   },
   {
     // Automatically updates the creation and update timestamps
-    TimeStamps: true,
+    timestamps: true,
   }
 );
 
