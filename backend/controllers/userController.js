@@ -166,7 +166,7 @@ const getUsersByPage = asyncHandler(async (req, res, next) => {
 // @desc     Get all users
 // @route    GET /api/allUsers
 // @access   Private
-const getAllUsers = asyncHandler(async (req, res, next) => {
+const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().sort({ _id: -1 });
 
@@ -177,7 +177,7 @@ const getAllUsers = asyncHandler(async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-});
+};
 
 // Controller function to get user details by ID
 const getUserById = async (req, res) => {

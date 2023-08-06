@@ -4,6 +4,8 @@ import colors from "colors";
 import users from "./data/userData.js";
 import User from "./models/userModel.js";
 import connectDB from "./config/db.js";
+import RecyclingHistory from "./models/recyclingHistoryModel.js";
+import Feedback from "./models/FeedbacksModel.js";
 
 dotenv.config();
 
@@ -25,7 +27,7 @@ const importData = async () => {
 
 const destroyData = async () => {
     try {
-        await User.deleteMany()
+        await Feedback.deleteMany()
 
         console.log('Data Destoryed!'.red.inverse)
         process.exit()

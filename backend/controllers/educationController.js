@@ -43,7 +43,7 @@ export const getAllEducationByPages = async (req, res) => {
   try {
     // Retrieve all educations and populate the "user" field with the user information
     const education = await Education.find()
-      .populate("author_id", "name picture")
+      .populate("author_id", "name picture isAdmin")
       .sort({ createdAt: -1 })
       .skip(startIndex)
       .limit(pageSize);

@@ -40,7 +40,7 @@ const createRecyclingLocation = asyncHandler(async (req, res) => {
 // @desc     Get All Recycling Locations in Reverse Order
 // @route    GET /api/recycle/location
 // @access   Private
-const getAllRecyclingLocations = asyncHandler(async (req, res, next) => {
+const getAllRecyclingLocations = async (req, res, next) => {
   try {
     const recyclingLocations = await RecyclingCollection.find().sort({
       _id: -1,
@@ -52,9 +52,10 @@ const getAllRecyclingLocations = asyncHandler(async (req, res, next) => {
       pages: 1,
     });
   } catch (error) {
-    next(error);
+    return res.status(500).json({ error: "Internal server error" });
+ 
   }
-});
+};
 
 // @desc     Get Recycling Locations by Page and Search Keyword
 // @route    GET /api/recycle/location?page=1&search=keyword
@@ -84,7 +85,9 @@ const getRecyclingLocationsByPage = asyncHandler(async (req, res, next) => {
       pages: Math.ceil(count / pageSize),
     });
   } catch (error) {
-    next(error);
+    return res.status(500).json({ error: "Internal server error" });
+ 
+
   }
 });
 
